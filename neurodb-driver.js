@@ -55,6 +55,7 @@ const STATUS_DIC = [
    { status: "NO_PROC_ERR", msg: "不支持的存储过程" },// 27  
    { status: "CSV_FILE_ERR", msg: "csv文件读取错误" },// 28
    { status: "CSV_ROW_VAR_ERR", msg: "csv 变量属性名在列中未找到" },// 29 
+   { status: "QUREY_TIMEOUT_ERR", msg: "查询过载超时" },// 30 
 ]
 
 let NeuroDBDriver = function (url,onOpen,onMessage,onError,onClose) {
@@ -368,21 +369,23 @@ function deserializeReturnData(str) {
    let type = str.charAt(0);
    let brIndex = -1;
    switch (type) {
-      case '@':
+      case '@': /* 返回的是只有一个成功执行状态位的数据包*/
+         resultSet.status = 1;
          resultSet.status = 'OK';
          resultSet.msg='运行成功'
          break;
-      case '$':
+      case '$': /* 返回的是包含错误消息的报错数据包*/
+         resultSet.status = 0;
          resultSet.status = 'ERR';
          brIndex = str.indexOf("\r\n");
          resultSet.msg = str.substring(brIndex);
          break;
-      case '#':
+      case '#': /* 返回的是包含正常消息的消息数据包*/
          resultSet.status = 1;
          brIndex = str.indexOf("\r\n");
          resultSet.msg = str.substring(brIndex);
          break;
-      case '*':
+      case '*': /* 返回的是图查询结果数据包 */
          brIndex = str.indexOf("\n");
          let line = str.substring(1, brIndex);
          let head = line.split(",");
